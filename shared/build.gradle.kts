@@ -24,6 +24,14 @@ kotlin {
         }
     }
 
+    // Desktop target (KMP #19 — uncomment to enable)
+    // jvm("desktop")
+
+    // Web target (KMP #19 — uncomment to enable)
+    // wasmJs {
+    //     browser()
+    // }
+
     sourceSets {
         commonMain.dependencies {
             // Coroutines
@@ -60,6 +68,21 @@ kotlin {
             implementation(libs.sqldelight.native)
             implementation(libs.ktor.client.darwin)
         }
+
+        // Desktop dependencies (KMP #19 — uncomment with desktop target)
+        // val desktopMain by getting {
+        //     dependencies {
+        //         implementation(libs.sqldelight.jvm)
+        //         implementation(libs.ktor.client.okhttp)
+        //     }
+        // }
+
+        // Web dependencies (KMP #19 — uncomment with wasmJs target)
+        // val wasmJsMain by getting {
+        //     dependencies {
+        //         implementation(libs.ktor.client.js)
+        //     }
+        // }
 
         commonTest.dependencies {
             implementation(libs.kotlin.test)
