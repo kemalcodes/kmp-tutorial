@@ -2,32 +2,97 @@ import SwiftUI
 import Shared
 
 struct ContentView: View {
-    @State private var showContent = false
+    @StateObject private var viewModel = NotesViewModelWrapper()
+
     var body: some View {
-        VStack {
-            Button("Click me!") {
-                withAnimation {
-                    showContent = !showContent
+        NavigationStack {
+            VStack {
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.secondary)
+                    TextField("Search notes...", text: $viewModel.searchQuery)
+                }
+                .padding(10)
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+                .padding(.horizontal)
+
+                if viewModel.notes.isEmpty {
+                    Spacer()
+                    Text(viewModel.searchQuery.isEmpty
+                         ? "No notes yet.\nTap + to create one."
+                         : "No notes found.")
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    Spacer()
+                } else {
+                    List {
+                        ForEach(viewModel.notes, id: \.id) { note in
+                            NoteRow(
+                                note: note,
+                                onFavorite: { viewModel.toggleFavorite(note: note) },
+                                onDelete: { viewModel.deleteNote(id: note.id) }
+                            )
+                        }
+                    }
+                    .listStyle(.plain)
                 }
             }
-
-            if showContent {
-                VStack(spacing: 16) {
-                    Image(systemName: "swift")
-                        .font(.system(size: 200))
-                        .foregroundColor(.accentColor)
-                    Text("SwiftUI: \(Greeting().greet())")
+            .navigationTitle("My Notes")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: { viewModel.createNote() }) {
+                        Image(systemName: "plus")
+                    }
                 }
-                .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .padding()
     }
 }
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
+struct NoteRow: View {
+    let note: Note
+    let onFavorite: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Circle()
+                    .fill(colorForNote(note.color))
+                    .frame(width: 12, height: 12)
+                Text(note.title)
+                    .font(.headline)
+                    .lineLimit(1)
+                Spacer()
+                Button(action: onFavorite) {
+                    Image(systemName: note.isFavorite ? "heart.fill" : "heart")
+                        .foregroundColor(note.isFavorite ? .red : .secondary)
+                }
+                .buttonStyle(.plain)
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .foregroundColor(.red)
+                }
+                .buttonStyle(.plain)
+            }
+            Text(note.content)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .lineLimit(3)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+func colorForNote(_ noteColor: NoteColor) -> Color {
+    switch noteColor {
+    case .red: return .red
+    case .orange: return .orange
+    case .yellow: return .yellow
+    case .green: return .green
+    case .blue: return .blue
+    case .purple: return .purple
+    default: return Color(.systemGray4)
     }
 }
