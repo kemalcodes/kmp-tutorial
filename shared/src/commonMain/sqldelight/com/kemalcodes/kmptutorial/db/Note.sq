@@ -1,0 +1,49 @@
+-- Note.sq
+-- SQLDelight schema and queries for the notes table.
+-- SQLDelight generates type-safe Kotlin code from this file.
+-- Each named query below becomes a Kotlin function you can call.
+
+-- Create the notes table
+-- SQLDelight uses this to generate the database schema automatically.
+CREATE TABLE notes (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL DEFAULT "",
+    is_completed INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+-- Select all notes, ordered by most recently created first
+selectAll:
+SELECT * FROM notes ORDER BY created_at DESC;
+
+-- Select a single note by its ID
+selectById:
+SELECT * FROM notes WHERE id = ?;
+
+-- Search notes whose title contains the given text (case-insensitive)
+searchByTitle:
+SELECT * FROM notes WHERE title LIKE '%' || ? || '%' ORDER BY created_at DESC;
+
+-- Insert a new note into the database
+-- The id is auto-generated, so we only pass the other columns.
+insert:
+INSERT INTO notes (title, content, is_completed, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?);
+
+-- Update an existing note's title, content, and updated_at timestamp
+updateNote:
+UPDATE notes SET title = ?, content = ?, updated_at = ? WHERE id = ?;
+
+-- Toggle the is_completed flag (0 becomes 1, 1 becomes 0)
+toggleCompleted:
+UPDATE notes SET is_completed = CASE WHEN is_completed = 0 THEN 1 ELSE 0 END, updated_at = ? WHERE id = ?;
+
+-- Delete a note by its ID
+deleteById:
+DELETE FROM notes WHERE id = ?;
+
+-- Count all notes in the database
+countAll:
+SELECT COUNT(*) FROM notes;
