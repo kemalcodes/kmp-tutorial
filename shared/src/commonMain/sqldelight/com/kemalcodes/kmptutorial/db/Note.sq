@@ -5,7 +5,8 @@ CREATE TABLE NoteEntity (
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     is_favorite INTEGER NOT NULL DEFAULT 0,
-    color TEXT NOT NULL DEFAULT 'DEFAULT'
+    color TEXT NOT NULL DEFAULT 'DEFAULT',
+    synced INTEGER NOT NULL DEFAULT 0
 );
 
 getAllNotes:
@@ -22,16 +23,22 @@ ORDER BY updated_at DESC;
 getFavoriteNotes:
 SELECT * FROM NoteEntity WHERE is_favorite = 1 ORDER BY updated_at DESC;
 
+getUnsyncedNotes:
+SELECT * FROM NoteEntity WHERE synced = 0;
+
 insertNote:
-INSERT INTO NoteEntity (title, content, created_at, updated_at, is_favorite, color)
-VALUES (?, ?, ?, ?, ?, ?);
+INSERT INTO NoteEntity (title, content, created_at, updated_at, is_favorite, color, synced)
+VALUES (?, ?, ?, ?, ?, ?, ?);
 
 getLastInsertId:
 SELECT last_insert_rowid();
 
 updateNote:
-UPDATE NoteEntity SET title = ?, content = ?, updated_at = ?, is_favorite = ?, color = ?
+UPDATE NoteEntity SET title = ?, content = ?, updated_at = ?, is_favorite = ?, color = ?, synced = ?
 WHERE id = ?;
+
+markSynced:
+UPDATE NoteEntity SET synced = 1 WHERE id = ?;
 
 deleteNote:
 DELETE FROM NoteEntity WHERE id = ?;

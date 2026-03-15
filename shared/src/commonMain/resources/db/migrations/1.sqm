@@ -1,0 +1,3 @@
+-- Migration from schema v1 to v2: add synced column for offline-first sync tracking.
+-- Apply this migration manually for existing databases that were created with v1 schema.
+ALTER TABLE NoteEntity ADD COLUMN synced INTEGER NOT NULL DEFAULT 0;

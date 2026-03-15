@@ -41,7 +41,15 @@ class LocalNoteDataSource(private val db: NotesDatabase) {
             .mapToList(Dispatchers.IO)
             .map { entities: List<NoteEntity> -> entities.map { it.toNote() } }
 
-    fun insertNote(title: String, content: String, color: NoteColor = NoteColor.DEFAULT): Long {
+    fun getUnsyncedNotes(): List<Note> =
+        queries.getUnsyncedNotes().executeAsList().map { it.toNote() }
+
+    fun insertNote(
+        title: String,
+        content: String,
+        color: NoteColor = NoteColor.DEFAULT,
+        synced: Boolean = false
+    ): Long {
         val now = Clock.System.now().toEpochMilliseconds()
         queries.insertNote(
             title = title,
@@ -49,12 +57,25 @@ class LocalNoteDataSource(private val db: NotesDatabase) {
             created_at = now,
             updated_at = now,
             is_favorite = 0L,
-            color = color.name
+            color = color.name,
+            synced = if (synced) 1L else 0L
         )
         return queries.getLastInsertId().executeAsOne()
     }
 
-    fun updateNote(note: Note) {
+    fun insertNoteFromRemote(note: Note) {
+        queries.insertNote(
+            title = note.title,
+            content = note.content,
+            created_at = note.createdAt.toEpochMilliseconds(),
+            updated_at = note.updatedAt.toEpochMilliseconds(),
+            is_favorite = if (note.isFavorite) 1L else 0L,
+            color = note.color.name,
+            synced = 1L
+        )
+    }
+
+    fun updateNote(note: Note, synced: Boolean = false) {
         val now = Clock.System.now().toEpochMilliseconds()
         queries.updateNote(
             title = note.title,
@@ -62,8 +83,13 @@ class LocalNoteDataSource(private val db: NotesDatabase) {
             updated_at = now,
             is_favorite = if (note.isFavorite) 1L else 0L,
             color = note.color.name,
+            synced = if (synced) 1L else 0L,
             id = note.id
         )
+    }
+
+    fun markSynced(id: Long) {
+        queries.markSynced(id)
     }
 
     fun deleteNote(id: Long) {
