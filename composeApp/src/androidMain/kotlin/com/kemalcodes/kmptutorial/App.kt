@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,60 +15,106 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kemalcodes.kmptutorial.domain.NoteDetailViewModel
 import com.kemalcodes.kmptutorial.domain.NotesViewModel
 import com.kemalcodes.kmptutorial.model.Note
 import com.kemalcodes.kmptutorial.model.NoteColor
 import org.koin.compose.viewmodel.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App() {
     MaterialTheme {
-        val viewModel: NotesViewModel = koinViewModel()
-        val notes by viewModel.notes.collectAsState()
-        val searchQuery by viewModel.searchQuery.collectAsState()
+        val navigator = remember { Navigator() }
+        val currentScreen by navigator.currentScreen.collectAsState()
 
-        Scaffold(
-            modifier = Modifier.safeContentPadding(),
-            topBar = {
-                TopAppBar(title = { Text("My Notes") })
-            },
-            floatingActionButton = {
-                FloatingActionButton(
-                    onClick = { viewModel.createNote("New Note", "Tap to edit...") }
-                ) {
-                    Text("+", style = MaterialTheme.typography.headlineMedium)
-                }
+        when (val screen = currentScreen) {
+            is Screen.NoteList -> NoteListScreen(
+                onNoteClick = { noteId -> navigator.navigateTo(Screen.NoteEdit(noteId)) },
+                onCreateClick = { navigator.navigateTo(Screen.NoteEdit(null)) }
+            )
+            is Screen.NoteEdit -> NoteEditScreen(
+                noteId = screen.noteId,
+                onBack = { navigator.goBack() }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NoteListScreen(
+    onNoteClick: (Long) -> Unit,
+    onCreateClick: () -> Unit
+) {
+    val viewModel: NotesViewModel = koinViewModel()
+    val notes by viewModel.notes.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val syncError by viewModel.syncError.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val pullToRefreshState = rememberPullToRefreshState()
+
+    LaunchedEffect(syncError) {
+        syncError?.let {
+            snackbarHostState.showSnackbar("Sync failed: $it")
+            viewModel.clearSyncError()
+        }
+    }
+
+    Scaffold(
+        modifier = Modifier.safeContentPadding(),
+        topBar = {
+            TopAppBar(title = { Text("My Notes") })
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onCreateClick) {
+                Text("+", style = MaterialTheme.typography.headlineMedium)
             }
-        ) { padding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-            ) {
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
+        PullToRefreshBox(
+            isRefreshing = isLoading,
+            onRefresh = { viewModel.sync() },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            state = pullToRefreshState
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = viewModel::onSearchQueryChange,
@@ -78,7 +126,7 @@ fun App() {
                     shape = RoundedCornerShape(12.dp)
                 )
 
-                if (notes.isEmpty()) {
+                if (notes.isEmpty() && !isLoading) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -100,7 +148,118 @@ fun App() {
                                 note = note,
                                 onFavoriteClick = { viewModel.toggleFavorite(note) },
                                 onDeleteClick = { viewModel.deleteNote(note.id) },
-                                onClick = { /* Navigate to detail — KMP #17 */ }
+                                onClick = { onNoteClick(note.id) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+fun NoteEditScreen(
+    noteId: Long?,
+    onBack: () -> Unit
+) {
+    val viewModel: NoteDetailViewModel = koinViewModel()
+    val title by viewModel.title.collectAsState()
+    val content by viewModel.content.collectAsState()
+    val color by viewModel.color.collectAsState()
+
+    LaunchedEffect(noteId) {
+        if (noteId != null) {
+            viewModel.loadNote(noteId)
+        }
+    }
+
+    Scaffold(
+        modifier = Modifier.safeContentPadding(),
+        topBar = {
+            TopAppBar(
+                title = { Text(if (noteId != null) "Edit Note" else "New Note") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Text("<", style = MaterialTheme.typography.titleLarge)
+                    }
+                },
+                actions = {
+                    TextButton(onClick = {
+                        viewModel.saveNote()
+                        onBack()
+                    }) {
+                        Text("Save")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
+        ) {
+            OutlinedTextField(
+                value = title,
+                onValueChange = viewModel::onTitleChange,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Title") },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = content,
+                onValueChange = viewModel::onContentChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                placeholder = { Text("Write your note...") },
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text("Color", style = MaterialTheme.typography.labelLarge)
+            Spacer(modifier = Modifier.height(8.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                NoteColor.entries.forEach { noteColor ->
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(noteColor.toComposeColor())
+                            .clickable { viewModel.onColorChange(noteColor) }
+                            .then(
+                                if (noteColor == color) {
+                                    Modifier
+                                        .background(
+                                            noteColor.toComposeColor(),
+                                            CircleShape
+                                        )
+                                        .padding(4.dp)
+                                        .background(Color.White, CircleShape)
+                                        .padding(4.dp)
+                                        .background(noteColor.toComposeColor(), CircleShape)
+                                } else {
+                                    Modifier
+                                }
+                            )
+                    ) {
+                        if (noteColor == color) {
+                            Text(
+                                "✓",
+                                modifier = Modifier.align(Alignment.Center),
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelMedium
                             )
                         }
                     }

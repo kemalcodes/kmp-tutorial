@@ -17,7 +17,11 @@ struct ContentView: View {
                 .cornerRadius(12)
                 .padding(.horizontal)
 
-                if viewModel.notes.isEmpty {
+                if viewModel.isLoading && viewModel.notes.isEmpty {
+                    Spacer()
+                    ProgressView("Loading...")
+                    Spacer()
+                } else if viewModel.notes.isEmpty {
                     Spacer()
                     Text(viewModel.searchQuery.isEmpty
                          ? "No notes yet.\nTap + to create one."
@@ -28,23 +32,49 @@ struct ContentView: View {
                 } else {
                     List {
                         ForEach(viewModel.notes, id: \.id) { note in
-                            NoteRow(
-                                note: note,
-                                onFavorite: { viewModel.toggleFavorite(note: note) },
-                                onDelete: { viewModel.deleteNote(id: note.id) }
-                            )
+                            NavigationLink(value: note.id) {
+                                NoteRow(
+                                    note: note,
+                                    onFavorite: { viewModel.toggleFavorite(note: note) },
+                                    onDelete: { viewModel.deleteNote(id: note.id) }
+                                )
+                            }
                         }
                     }
                     .listStyle(.plain)
+                    .refreshable {
+                        viewModel.sync()
+                    }
                 }
             }
             .navigationTitle("My Notes")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button(action: { viewModel.createNote() }) {
+                    Button(action: { viewModel.showNewNote = true }) {
                         Image(systemName: "plus")
                     }
                 }
+            }
+            .navigationDestination(for: Int64.self) { noteId in
+                NoteEditView(
+                    noteId: noteId,
+                    repository: viewModel.repository,
+                    onSave: { viewModel.refresh() }
+                )
+            }
+            .sheet(isPresented: $viewModel.showNewNote) {
+                NavigationStack {
+                    NoteEditView(
+                        noteId: nil,
+                        repository: viewModel.repository,
+                        onSave: { viewModel.refresh() }
+                    )
+                }
+            }
+            .alert("Sync Error", isPresented: $viewModel.showSyncError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(viewModel.syncErrorMessage)
             }
         }
     }

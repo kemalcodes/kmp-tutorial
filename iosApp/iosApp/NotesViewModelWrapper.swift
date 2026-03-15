@@ -2,17 +2,22 @@ import Foundation
 import Shared
 
 class NotesViewModelWrapper: ObservableObject {
-    private let repository: NoteRepository
+    let repository: NoteRepository
     @Published var notes: [Note] = []
     @Published var searchQuery: String = "" {
         didSet { observeNotes() }
     }
+    @Published var isLoading: Bool = false
+    @Published var showNewNote: Bool = false
+    @Published var showSyncError: Bool = false
+    var syncErrorMessage: String = ""
 
     private var collector: Closeable?
 
     init() {
         self.repository = KoinHelper.shared.getNoteRepository()
         observeNotes()
+        sync()
     }
 
     private func observeNotes() {
@@ -25,6 +30,24 @@ class NotesViewModelWrapper: ObservableObject {
             let notesList = value as? [Note] ?? []
             DispatchQueue.main.async {
                 self?.notes = notesList
+            }
+        }
+    }
+
+    func refresh() {
+        observeNotes()
+    }
+
+    func sync() {
+        isLoading = true
+        Task {
+            let result = try await repository.sync()
+            DispatchQueue.main.async { [weak self] in
+                self?.isLoading = false
+                if let error = result as? SyncResult.Error {
+                    self?.syncErrorMessage = error.message
+                    self?.showSyncError = true
+                }
             }
         }
     }
