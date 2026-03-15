@@ -13,7 +13,7 @@ git clone https://github.com/kemalcodes/kmp-tutorial.git
 cd kmp-tutorial
 
 # Switch to a specific tutorial
-git checkout tutorial-01-what-is-kmp
+git checkout tutorial-06-ktor
 ```
 
 The `main` branch contains the base KMP project. Tutorial branches build on top of it.
@@ -24,19 +24,19 @@ The `main` branch contains the base KMP project. Tutorial branches build on top 
 
 | # | Tutorial | Branch | Article |
 |---|---------|--------|---------|
-| 1 | What is Kotlin Multiplatform? | `tutorial-01-what-is-kmp` | [Read](https://kemalcodes.com/posts/kmp-tutorial-what-is-kotlin-multiplatform/) |
-| 2 | Setting Up Your First KMP Project | `tutorial-02-setup` | Coming soon |
-| 3 | KMP Project Structure | `tutorial-03-structure` | Coming soon |
-| 4 | Compose Multiplatform | `tutorial-04-compose-multiplatform` | Coming soon |
-| 5 | KMP vs Flutter vs React Native | `tutorial-05-comparison` | Coming soon |
+| 1 | What is Kotlin Multiplatform? | — | [Read](https://kemalcodes.com/posts/kmp-tutorial-what-is-kotlin-multiplatform/) |
+| 2 | Setting Up Your First KMP Project | — | [Read](https://kemalcodes.com/posts/kmp-tutorial-setup-first-project/) |
+| 3 | KMP Project Structure | — | [Read](https://kemalcodes.com/posts/kmp-tutorial-project-structure/) |
+| 4 | Compose Multiplatform | — | [Read](https://kemalcodes.com/posts/kmp-tutorial-compose-multiplatform/) |
+| 5 | KMP vs Flutter vs React Native | — | [Read](https://kemalcodes.com/posts/kmp-tutorial-kmp-vs-flutter-vs-react-native/) |
 
 ### Part 2: Core Libraries
 
 | # | Tutorial | Branch | Article |
 |---|---------|--------|---------|
-| 6 | Ktor Client — Networking | `tutorial-06-ktor` | Coming soon |
-| 7 | SQLDelight — Database | `tutorial-07-sqldelight` | Coming soon |
-| 8 | DataStore — Storage | `tutorial-08-datastore` | Coming soon |
+| 6 | Ktor Client — Networking | `tutorial-06-ktor` | [Read](https://kemalcodes.com/posts/kmp-tutorial-ktor-networking/) |
+| 7 | SQLDelight — Database | `tutorial-07-sqldelight` | [Read](https://kemalcodes.com/posts/kmp-tutorial-sqldelight/) |
+| 8 | DataStore — Storage | `tutorial-08-datastore` | [Read](https://kemalcodes.com/posts/kmp-tutorial-datastore/) |
 | 9 | Koin — Dependency Injection | `tutorial-09-koin` | Coming soon |
 | 10 | Shared ViewModel | `tutorial-10-viewmodel` | Coming soon |
 
@@ -74,11 +74,8 @@ kmp-tutorial/
 │       ├── commonMain/     ← Code for ALL platforms
 │       ├── androidMain/    ← Android-specific code
 │       └── iosMain/        ← iOS-specific code
-├── composeApp/             ← Android/Desktop app (Compose UI)
+├── composeApp/             ← Android app (Compose UI)
 │   └── src/
-│       ├── commonMain/     ← Shared Compose UI
-│       ├── androidMain/    ← Android entry point
-│       └── iosMain/        ← iOS entry point
 ├── iosApp/                 ← iOS app (Xcode project)
 ├── build.gradle.kts
 └── settings.gradle.kts
@@ -87,9 +84,10 @@ kmp-tutorial/
 ## Tech Stack
 
 - **Kotlin Multiplatform** — shared business logic
-- **Compose Multiplatform** — shared UI
+- **Compose Multiplatform** — shared UI (optional)
 - **Ktor** — networking
 - **SQLDelight** — database
+- **DataStore** — key-value preferences
 - **Koin** — dependency injection
 - **Kotlin Serialization** — JSON parsing
 
